@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum QuestionType {
+  YES_NO
+  MULTIPLE_CHOICE
+}
+
+model Users {
+  id             Int           @id @default(autoincrement())
+  username       String        @unique
+  password       String
+  email          String        @unique
+  image          String?
+  hashedPassword String?
+  createdAt      DateTime      @default(now())
+  role           UserRole?     @default(USER)
+  quizzes        Quizzes[]
+  userAnswers    UserAnswers[]
+  sessions       Session[]
+  acconuts       Account[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              Users   @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  sessionId    Int      @id @default(autoincrement())
+  userId       Int
+  sessionToken String
+  exires       DateTime
+  user         Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier   String
+  sessionToken String   @unique
+  expires      DateTime
+
+  @@unique([identifier, sessionToken])
+}
+
+model Quizzes {
+  quizId      Int         @id @default(autoincrement())
+  userId      Int
+  title       String      @unique
+  description String
+  createdAt   DateTime    @default(now())
+  questions   Questions[]
+  user        Users       @relation(fields: [userId], references: [id])
+}
+
+model Questions {
+  questionId   Int             @id @default(autoincrement())
+  questionName String
+  questionType QuestionType
+  quiz         Quizzes         @relation(fields: [quizId], references: [quizId])
+  quizId       Int
+  answers      AnswerOptions[]
+  userAnswers  UserAnswers[]
+}
+
+model AnswerOptions {
+  answerId   Int       @id @default(autoincrement())
+  answerText String
+  isCorrect  Boolean
+  question   Questions @relation(fields: [questionId], references: [questionId])
+  questionId Int
+}
+
+model UserAnswers {
+  userAnswerId Int       @id @default(autoincrement())
+  answerText   String
+  answeredAt   DateTime
+  user         Users     @relation(fields: [userId], references: [id])
+  userId       Int
+  question     Questions @relation(fields: [questionId], references: [questionId])
+  questionId   Int
+}
