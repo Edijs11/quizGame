@@ -3,57 +3,57 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { CreateQuestion } from './page';
-import { questionShema } from '@/app/models/shema';
+import { useEffect } from 'react';
 import { QuestionType } from '@prisma/client';
+import { questionShema } from '@/app/models/shema';
 
-type CreateQuestionProps = {
-  onCreateQuestion: (question: CreateQuestion) => Promise<void>;
-};
-
-type TCreateQuestionShema = z.infer<typeof questionShema>;
-
-const CreateQuestionModal = ({ onCreateQuestion }: CreateQuestionProps) => {
+type TEditQuestionShema = z.infer<typeof questionShema>;
+const EditQuestionModal = ({ updateQuestion, onEditQuestion }: any) => {
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<TCreateQuestionShema>({
+  } = useForm<TEditQuestionShema>({
     resolver: zodResolver(questionShema),
   });
 
-  const onSubmit: SubmitHandler<TCreateQuestionShema> = async (data) => {
-    console.log('Form submitted with data:', data);
+  useEffect(() => {
+    const fetchQuestion = async () => {
+      try {
+        reset(updateQuestion);
+      } catch {
+        throw new Error('could not get the Question');
+      }
+    };
+    fetchQuestion();
+  }, [reset]);
+
+  const onSubmit: SubmitHandler<TEditQuestionShema> = async (data) => {
     try {
-      console.log('aa');
+      console.log('submit');
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      await onCreateQuestion(data);
-      console.log('question created', data);
-      reset();
-    } catch {
-      console.log('aaerr');
-      throw new Error('failed to create quiz');
+      onEditQuestion(data.questionId, data);
+    } catch (error) {
+      throw new Error('failed to submit Question');
     }
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col mt-2 text-white"
-    >
-      <h1 className="text-xl place-self-center">Add quiz</h1>
-      <p className="mt-2">Question Name:</p>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col mt-2">
+      <h1 className="text-xl place-self-center -mt-8">Edit Question</h1>
+      <p>Question Name:</p>
       <input
         {...register('questionName')}
         type="text"
-        placeholder="Question Name"
+        placeholder="Nosaukums"
         className="text-black rounded-sm"
       />
       {errors.questionName && (
         <p className="text-red-500">{`${errors.questionName.message}`}</p>
       )}
-      <p className="mt-2">Question Name:</p>
+
+      <p>Question Type:</p>
       <select {...register('questionType')} className="text-black rounded-sm">
         {Object.values(QuestionType).map((selectedType) => (
           <option key={selectedType} value={selectedType}>
@@ -64,14 +64,13 @@ const CreateQuestionModal = ({ onCreateQuestion }: CreateQuestionProps) => {
       {errors.questionType && (
         <p className="text-red-500">{`${errors.questionType.message}`}</p>
       )}
-
       <button
         type="submit"
         className="p-2 bg-blue-500 hover:bg-blue-600 rounded text-white mt-6"
       >
-        Add
+        Edit Question
       </button>
     </form>
   );
 };
-export default CreateQuestionModal;
+export default EditQuestionModal;

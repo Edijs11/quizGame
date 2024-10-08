@@ -10,8 +10,6 @@ export const quizShema = z.object({
     .string()
     .min(7, { message: 'Minimālais rakstzīmju daudzums ir 7' })
     .max(500, { message: 'Miksimālais rakstzīmju daudzums ir 500' }),
-  createdAt: z.coerce.date(),
-
   userId: z.number().optional(),
 });
 
@@ -22,7 +20,6 @@ export const questionShema = z.object({
     .min(5, { message: 'Minimālais rakstzīmju daudzums ir 5' })
     .max(40, { message: 'Miksimālais rakstzīmju daudzums ir 40' }),
   questionType: z.enum(['YES_NO', 'MULTIPLE_CHOICE']),
-  createdAt: z.coerce.date(),
   quizId: z.number().nullable().optional(),
 });
 

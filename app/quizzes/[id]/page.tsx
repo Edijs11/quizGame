@@ -4,38 +4,38 @@ import Modal from '@/app/components/modal';
 import { QuestionType } from '@prisma/client';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { FaLongArrowAltLeft } from 'react-icons/fa';
 import CreateQuestionModal from './createQuestionModal';
+import EditQuestionModal from './editQuestionModal';
 
 export interface Question {
   questionId: number;
   questionName: string;
   questionType: QuestionType;
-  createdAt: Date;
   quizId: number;
 }
 
 export interface CreateQuestion {
   questionName: string;
   questionType: QuestionType;
-  createdAt: Date;
-  quizId: number;
+  // quizId?: number;
 }
-//{ params }: { params: { id: string } }
 
 const questions = () => {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [newQuestions, setNewQuestions] = useState<Question>({
+  const [newQuestion, setNewQuestion] = useState<Question>({
     questionId: 1,
     questionName: '',
     questionType: 'YES_NO',
-    createdAt: new Date(),
     quizId: 1,
   });
   const [isAddQuestionModalOpen, setIsAddQuestionModalOpen] = useState(false);
+  const [isEditQuestionModalOpen, setIsEditQuestionModalOpen] = useState(false);
+  const [isDeleteQuestionModalOpen, setIsDeleteQuestionModalOpen] =
+    useState(false);
+  const [deleteQuestionId, setDeleteQuestionId] = useState<number>(0);
   const params = useParams();
   const id = params.id ? Number(params.id) : NaN;
 
@@ -57,7 +57,7 @@ const questions = () => {
 
   const createQuestion = async (quiz: CreateQuestion) => {
     try {
-      const response = await fetch(`${apiUrl}/api/quizzes/${id}`, {
+      const response = await fetch(`${apiUrl}/api/quizzes/${id}/questions`, {
         method: 'POST',
         headers: {
           'content-Type': 'application/json',
@@ -71,22 +71,78 @@ const questions = () => {
 
       const data = await response.json();
       setQuestions([data, ...questions]);
-      setNewQuestions({
+      setNewQuestion({
         questionId: 1,
         questionName: '',
         questionType: 'YES_NO',
-        createdAt: new Date(),
         quizId: 1,
       });
     } catch (error) {
       console.log('Error creating question: ', error);
     }
   };
+
+  const updateQuestionInEditModal = async () => {
+    try {
+      console.log('update');
+      const question = await fetch(`${apiUrl}/api/quizzes/${id}`);
+      const data = await question.json();
+      setNewQuestion(data);
+      setIsEditQuestionModalOpen(true);
+      console.log(data);
+      return data;
+    } catch (error) {
+      console.error(`Error editing question:`, error);
+    }
+  };
+  const editQuestion = async () => {
+    try {
+      console.log('edit');
+      await fetch(`${apiUrl}/api/quizzes/${id}/questions`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(setNewQuestion),
+      });
+      setNewQuestion({
+        questionId: 1,
+        questionName: '',
+        questionType: 'YES_NO',
+        quizId: 1,
+      });
+      setIsEditQuestionModalOpen(false);
+    } catch (error) {
+      console.error(`Error editing question:`, error);
+    }
+  };
+
+  const deleteQuestion = async (id: number) => {
+    try {
+      await fetch(`${apiUrl}/api/quizzes/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(setNewQuestion),
+      });
+      setQuestions(questions.filter((question) => question.questionId != id));
+    } catch (error) {
+      console.error(`Error deleting Question:`, error);
+    }
+    setIsDeleteQuestionModalOpen(false);
+  };
+
   return (
     <div className="flex min-h-screen flex-col align-middle items-center bg-slate-900">
       {isAddQuestionModalOpen && (
         <Modal onClose={() => setIsAddQuestionModalOpen(false)}>
           <CreateQuestionModal onCreateQuestion={createQuestion} />
+        </Modal>
+      )}
+      {isEditQuestionModalOpen && (
+        <Modal onClose={() => setIsEditQuestionModalOpen(false)}>
+          <EditQuestionModal onEditQuestion={editQuestion} />
         </Modal>
       )}
       <Link href="/quizzes">
@@ -112,13 +168,23 @@ const questions = () => {
                 className="gap-8 p-6 border border-spacing-2 mt-2 mx-4 rounded-lg hover:bg-gray-800"
                 key={question.questionId}
               >
-                <div
-                  className="flex justify-center flex-row text-white"
-                  key={question.questionId}
-                >
-                  <div className="relative text-center p-2">
-                    <p>{question.questionName}</p>
-                    <p>{question.questionType}</p>
+                <div className="flex items-center justify-between flex-row text-white">
+                  <p className="text-center w-full">{question.questionName}</p>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={
+                        () => updateQuestionInEditModal() //question.questionId
+                      }
+                      className="bg-orange-300 hover:bg-orange-400 rounded text-white p-2 w-[75px]"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deleteQuestion(question.questionId)}
+                      className="bg-red-500 hover:bg-red-600 rounded text-white p-2"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>
